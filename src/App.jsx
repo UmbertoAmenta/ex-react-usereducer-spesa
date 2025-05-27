@@ -10,11 +10,26 @@ export default function App() {
 
   const [addedProducts, setAddedProducts] = useState([]);
 
+  const updateProductQuantity = (product) => {
+    setAddedProducts((addedProducts) =>
+      addedProducts.map((newProduct) =>
+        newProduct.name === product.name
+          ? { ...newProduct, quantity: newProduct.quantity + 1 }
+          : newProduct
+      )
+    );
+  };
+
   const addToCart = (product) => {
     if (!addedProducts.some((p) => p.name === product.name)) {
       return setAddedProducts([...addedProducts, { ...product, quantity: 1 }]);
     }
-    return addedProducts;
+    return updateProductQuantity(product);
+  };
+
+  const removeFromCart = (product) => {
+    const newCart = addedProducts.filter((p) => p.name !== product.name);
+    return setAddedProducts(newCart);
   };
 
   return (
@@ -46,8 +61,23 @@ export default function App() {
                   <span>{product.price}€</span>
                   <span>x {product.quantity}</span>
                 </span>
+                <span>
+                  <button onClick={() => removeFromCart(product)}>
+                    Rimuovi dal carrello
+                  </button>
+                </span>
               </div>
             ))}
+          </div>
+          <div>
+            Totale da pagare:{" "}
+            {addedProducts
+              .reduce(
+                (acc, product) => acc + product.price * product.quantity,
+                0
+              )
+              .toFixed(2)}
+            €
           </div>
         </>
       )}
