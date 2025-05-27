@@ -10,11 +10,12 @@ export default function App() {
 
   const [addedProducts, setAddedProducts] = useState([]);
 
-  const updateProductQuantity = (product) => {
+  const updateProductQuantity = (product, newQuantity) => {
+    const quantity = Math.floor(newQuantity);
     setAddedProducts((addedProducts) =>
       addedProducts.map((newProduct) =>
         newProduct.name === product.name
-          ? { ...newProduct, quantity: newProduct.quantity + 1 }
+          ? { ...newProduct, quantity }
           : newProduct
       )
     );
@@ -24,7 +25,11 @@ export default function App() {
     if (!addedProducts.some((p) => p.name === product.name)) {
       return setAddedProducts([...addedProducts, { ...product, quantity: 1 }]);
     }
-    return updateProductQuantity(product);
+    return setAddedProducts((addedProducts) =>
+      addedProducts.map((p) =>
+        p.name === product.name ? { ...p, quantity: p.quantity + 1 } : p
+      )
+    );
   };
 
   const removeFromCart = (product) => {
@@ -59,7 +64,21 @@ export default function App() {
                 <span className="info">
                   <span>{product.name}</span>
                   <span>{product.price}€</span>
-                  <span>x {product.quantity}</span>
+                  <span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={product.quantity}
+                      onChange={(e) =>
+                        updateProductQuantity(product, e.target.value)
+                      }
+                      onBlur={(e) => {
+                        if (!e.target.value || Number(e.target.value) < 1) {
+                          updateProductQuantity(product, 1);
+                        }
+                      }}
+                    />
+                  </span>
                 </span>
                 <span>
                   <button onClick={() => removeFromCart(product)}>
