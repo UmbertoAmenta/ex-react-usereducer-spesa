@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useReducer } from "react";
 
 export default function App() {
   const products = [
@@ -8,34 +8,41 @@ export default function App() {
     { name: "Pasta", price: 0.7 },
   ];
 
-  const [addedProducts, setAddedProducts] = useState([]);
+  const [cart, dispatchCart] = useReducer(cartReducer, []);
 
-  const updateProductQuantity = (product, newQuantity) => {
-    const quantity = Math.floor(newQuantity);
-    setAddedProducts((addedProducts) =>
-      addedProducts.map((newProduct) =>
-        newProduct.name === product.name
-          ? { ...newProduct, quantity }
-          : newProduct
-      )
-    );
-  };
-
-  const addToCart = (product) => {
-    if (!addedProducts.some((p) => p.name === product.name)) {
-      return setAddedProducts([...addedProducts, { ...product, quantity: 1 }]);
+  function cartReducer(currCart, action) {
+    switch (action.type) {
+      case "ADD_PRODUCT": {
+        const isOnCart = currCart.find(
+          (newProduct) => newProduct.name === action.payload.product.name
+        );
+        if (isOnCart) {
+          return currCart.map((newProduct) =>
+            newProduct.name === action.payload.product.name
+              ? { ...newProduct, quantity: newProduct.quantity + 1 }
+              : newProduct
+          );
+        }
+        return [...currCart, { ...action.payload.product, quantity: 1 }];
+      }
+      case "UPDATE_QUANTITY": {
+        let quantity = Math.floor(action.payload.quantity);
+        if (quantity < 1 || isNaN(quantity)) quantity = 1;
+        return currCart.map((newProduct) =>
+          newProduct.name === action.payload.product.name
+            ? { ...newProduct, quantity }
+            : newProduct
+        );
+      }
+      case "REMOVE_PRODUCT": {
+        return currCart.filter(
+          (newProduct) => newProduct.name !== action.payload.product.name
+        );
+      }
+      default:
+        return currCart;
     }
-    return setAddedProducts((addedProducts) =>
-      addedProducts.map((p) =>
-        p.name === product.name ? { ...p, quantity: p.quantity + 1 } : p
-      )
-    );
-  };
-
-  const removeFromCart = (product) => {
-    const newCart = addedProducts.filter((p) => p.name !== product.name);
-    return setAddedProducts(newCart);
-  };
+  }
 
   return (
     <>
@@ -48,18 +55,22 @@ export default function App() {
               <span>{product.price}€</span>
             </span>
             <span>
-              <button onClick={() => addToCart(product)}>
+              <button
+                onClick={() =>
+                  dispatchCart({ type: "ADD_PRODUCT", payload: { product } })
+                }
+              >
                 Aggiungi al carrello
               </button>
             </span>
           </div>
         ))}
       </div>
-      {addedProducts.length != 0 && (
+      {cart.length != 0 && (
         <>
           <h3>..il tuo carrello</h3>
           <div className="cart">
-            {addedProducts.map((product, i) => (
+            {cart.map((product, i) => (
               <div className="product" key={i}>
                 <span className="info">
                   <span>{product.name}</span>
@@ -70,18 +81,31 @@ export default function App() {
                       min={1}
                       value={product.quantity}
                       onChange={(e) =>
-                        updateProductQuantity(product, e.target.value)
+                        dispatchCart({
+                          type: "UPDATE_QUANTITY",
+                          payload: { product, quantity: e.target.value },
+                        })
                       }
                       onBlur={(e) => {
-                        if (!e.target.value || Number(e.target.value) < 1) {
-                          updateProductQuantity(product, 1);
+                        if (!e.target.value || e.target.value < 1) {
+                          dispatchCart({
+                            type: "UPDATE_QUANTITY",
+                            payload: { product, quantity: 1 },
+                          });
                         }
                       }}
                     />
                   </span>
                 </span>
                 <span>
-                  <button onClick={() => removeFromCart(product)}>
+                  <button
+                    onClick={() =>
+                      dispatchCart({
+                        type: "REMOVE_PRODUCT",
+                        payload: { product },
+                      })
+                    }
+                  >
                     Rimuovi dal carrello
                   </button>
                 </span>
@@ -90,7 +114,7 @@ export default function App() {
           </div>
           <div>
             Totale da pagare:{" "}
-            {addedProducts
+            {cart
               .reduce(
                 (acc, product) => acc + product.price * product.quantity,
                 0
